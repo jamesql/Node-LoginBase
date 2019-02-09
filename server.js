@@ -4,12 +4,11 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const cookieSession = require('cookie-session');
 const passport = require('passport');
+const settings = require('./settings.json');
 const con = require('./functions/sql');
 const hash = require('./lib/hash');
 
-
 const alg = "!!!";
-
 const app = express();
 const http = require('http');
 const server = http.createServer(app);
@@ -33,12 +32,18 @@ app.get('/getinfo', (req,res)=>{
   res.send(req.cookies.userData);
 })
 
+app.get('/logout', (req,res)=>{
+  res.clearCookie('userData')
+  res.redirect('/')
+})
+
 app.get('/auth/:username/:password', (req,res)=>{
   con.connect(function(err) {
-    const data = con.query("SELECT * FROM users WHERE username='" + req.params.username + "'", function (err, result, fields) {      if (result == null) {
-        // Wrong Username
+    const data = con.query("SELECT COUNT(*) AS total FROM users WHERE username='" + req.params.username + "'", function (err, result, fields) {
+      if (result[0].total == 0) {
+        res.redirect('/login')
       } else if (result[0].password == hash.sha256(req.params.password + alg)) {
-        // User Is Authenticated
+        console.log("Authenticated!")
         let userinfo = {
           username : req.params.username,
           password : hash.sha256(req.params.password + alg)
@@ -46,14 +51,29 @@ app.get('/auth/:username/:password', (req,res)=>{
         res.cookie('userData', userinfo);
         res.redirect('/')
       }else {
-        // Wrong Password
+        res.redirect('/login')
+      }
+    });
+  });
+})
+
+app.get('/createuser/:username/:password/:classcode', (req,res)=>{
+  con.connect(function(err) {
+  const data = con.query("SELECT COUNT(*) AS total FROM users WHERE username='" + req.params.username + "'", function (err, result, fields) {
+    if (result[0].total == 0) {
+      const reg = con.query("INSERT INTO users (username,password,classcode) VALUES ('" + req.params.username + "','" + hash.sha256(req.params.password + alg) + "','" + req.params.classcode + "')", function (err2, result2, fields2) {
+    });
+    res.redirect('/login')
+  }else{
+      res.redirect('/register')
       }
     });
   });
 })
 
 app.use('/', require('./routes/index'))
-
+app.use('/register', require('./routes/register'))
+app.use('/login', require('./routes/login'))
 
 
 server.listen(process.env.PORT || 80);
