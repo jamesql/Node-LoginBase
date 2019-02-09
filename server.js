@@ -35,12 +35,10 @@ app.get('/getinfo', (req,res)=>{
 
 app.get('/auth/:username/:password', (req,res)=>{
   con.connect(function(err) {
-    const data = con.query("SELECT * FROM users WHERE username='" + req.params.username + "'", function (err, result, fields) {
-      console.log("UN : " + req.params.username + "  PASS: " + req.params.password)
-      if (result == null) {
-        console.log("Incorrect Username")
+    const data = con.query("SELECT * FROM users WHERE username='" + req.params.username + "'", function (err, result, fields) {      if (result == null) {
+        // Wrong Username
       } else if (result[0].password == hash.sha256(req.params.password + alg)) {
-        console.log("Authenticated!")
+        // User Is Authenticated
         let userinfo = {
           username : req.params.username,
           password : hash.sha256(req.params.password + alg)
@@ -48,7 +46,7 @@ app.get('/auth/:username/:password', (req,res)=>{
         res.cookie('userData', userinfo);
         res.redirect('/')
       }else {
-        console.log("Incorrect Password")
+        // Wrong Password
       }
     });
   });
